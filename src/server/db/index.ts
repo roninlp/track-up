@@ -1,5 +1,6 @@
 import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
+import { DrizzleSQLiteAdapter } from "@lucia-auth/adapter-drizzle";
 
 import { env } from "@/env";
 import * as schema from "./schema";
@@ -13,7 +14,14 @@ const globalForDb = globalThis as unknown as {
 };
 
 export const client =
-  globalForDb.client ?? createClient({ url: env.DATABASE_URL });
+  globalForDb.client ??
+  createClient({ url: env.TURSO_URL, authToken: env.TURSO_AUTH_TOKEN });
 if (env.NODE_ENV !== "production") globalForDb.client = client;
 
 export const db = drizzle(client, { schema });
+
+export const adapter = new DrizzleSQLiteAdapter(
+  db,
+  schema.sessions,
+  schema.users,
+);
