@@ -110,7 +110,7 @@ export async function signIn(
     sessionCoockie.attributes,
   );
 
-  return redirect("/");
+  return redirect("/habits");
 }
 
 export async function signOut(): Promise<ActionResult> {
