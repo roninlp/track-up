@@ -11,7 +11,7 @@ interface FormProps {
   action: (prevState: any, formData: FormData) => Promise<ActionResult>;
 }
 
-export function Form({ children, action }: FormProps) {
+const Form = ({ children, action }: FormProps) => {
   const [state, formAction] = useFormState(action, {
     error: null,
   });
@@ -21,4 +21,6 @@ export function Form({ children, action }: FormProps) {
       <p>{state.error}</p>
     </form>
   );
-}
+};
+
+export default Form;

@@ -1,7 +1,21 @@
-import { Form } from "../_components/form";
-import { signUp } from "./action";
+import { getSession } from "@/server/auth/lucia";
+import Form from "../_components/form";
+import { signOut, signUp } from "./action";
 
 export default async function SignUp() {
+  const { user } = await getSession();
+
+  if (!!user) {
+    return (
+      <>
+        <p>You are already signed in.</p>
+        <Form action={signOut}>
+          <button type="submit">Sign Out</button>
+        </Form>
+      </>
+    );
+  }
+
   return (
     <>
       <h1>Sign Up</h1>
