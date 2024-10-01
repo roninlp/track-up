@@ -1,7 +1,5 @@
-import Link from "next/link";
-
 import { HydrateClient } from "@/trpc/server";
-import { getSession } from "@/server/auth/lucia";
+import { getUserAndSession } from "@/server/auth/lucia";
 import {
   Card,
   CardContent,
@@ -12,7 +10,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 
 export default async function Home() {
-  const { user } = await getSession();
+  const { user } = await getUserAndSession();
   return (
     <HydrateClient>
       <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#2e026d] to-[#15162c] text-white">

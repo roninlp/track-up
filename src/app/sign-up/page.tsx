@@ -1,9 +1,9 @@
-import { getSession } from "@/server/auth/lucia";
+import { getUserAndSession } from "@/server/auth/lucia";
 import Form from "../_components/form";
 import { signOut, signUp, signIn } from "./action";
 
 export default async function SignUp() {
-  const { user } = await getSession();
+  const { user } = await getUserAndSession();
 
   if (!!user) {
     return (

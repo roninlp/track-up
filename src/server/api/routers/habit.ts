@@ -2,7 +2,6 @@ import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
 import { habitRecords, habits } from "@/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { and, between, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 export const habitRouter = createTRPCRouter({
@@ -17,20 +16,33 @@ export const habitRouter = createTRPCRouter({
       const { name, description } = input;
       const userId = ctx.session.user.id;
 
-      await ctx.db.insert(habits).values({
+      return await ctx.db.insert(habits).values({
         name,
         description,
         userId,
       });
-      revalidatePath("/habits");
     }),
 
-  getAll: protectedProcedure.query(async ({ ctx }) => {
-    const userId = ctx.session.user.id;
-    return await ctx.db.query.habits.findMany({
-      where: eq(habits.userId, userId),
-    });
-  }),
+  getAll: protectedProcedure
+    .input(
+      z.object({
+        date: z.date(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { date } = input;
+      const userId = ctx.session.user.id;
+
+      return await ctx.db.query.habits.findMany({
+        where: eq(habits.userId, userId),
+        with: {
+          habitRecords: {
+            where: (habitRecords, { eq }) => eq(habitRecords.date, date),
+            limit: 1,
+          },
+        },
+      });
+    }),
 
   getById: protectedProcedure
     .input(z.object({ id: z.number() }))

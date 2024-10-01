@@ -5,7 +5,7 @@ import { generateIdFromEntropySize } from "lucia";
 import { db } from "@/server/db";
 import { users } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
-import { getSession, lucia } from "@/server/auth/lucia";
+import { getUserAndSession, lucia } from "@/server/auth/lucia";
 import { cookies } from "next/headers";
 import { validateEmailPassword } from "@/lib/utils/auth";
 
@@ -115,7 +115,7 @@ export async function signIn(
 
 export async function signOut(): Promise<ActionResult> {
   "use server";
-  const { session } = await getSession();
+  const { session } = await getUserAndSession();
   if (!session) {
     return {
       error: "Unauthorized",

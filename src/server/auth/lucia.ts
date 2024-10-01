@@ -18,7 +18,7 @@ export const lucia = new Lucia(adapter, {
   },
 });
 
-export const getSession = cache(
+export const getUserAndSession = cache(
   async (): Promise<
     { user: User; session: Session } | { user: null; session: null }
   > => {

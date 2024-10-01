@@ -11,7 +11,8 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { db } from "@/server/db";
-import { getSession } from "../auth/lucia";
+import { getUserAndSession } from "../auth/lucia";
+import { experimental_nextAppDirCaller } from "@trpc/server/adapters/next-app-dir";
 
 /**
  * 1. CONTEXT
@@ -26,7 +27,7 @@ import { getSession } from "../auth/lucia";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await getSession();
+  const session = await getUserAndSession();
   return {
     db,
     session,
@@ -41,6 +42,7 @@ export const createTRPCContext = async (opts: { headers: Headers }) => {
  * ZodErrors so that you get typesafety on the frontend if your procedure fails due to validation
  * errors on the backend.
  */
+
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
   errorFormatter({ shape, error }) {
@@ -108,16 +110,50 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  */
 export const publicProcedure = t.procedure.use(timingMiddleware);
 
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.session?.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
+export const protectedProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(({ ctx, next }) => {
+    if (!ctx.session?.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    return next({
+      ctx: {
+        session: {
+          ...ctx.session,
+        },
+      },
+    });
+  });
+
+interface Meta {
+  span: string;
+}
+
+export const ta = initTRPC.meta<Meta>().create();
+
+export const serverActionProcedure = ta.procedure
+  .experimental_caller(
+    experimental_nextAppDirCaller({
+      pathExtractor: ({ meta }) => (meta as Meta).span,
+    }),
+  )
+  .use(async (opts) => {
+    const { user } = await getUserAndSession();
+    return opts.next({ ctx: { user, db } });
+  });
+
+export const protectedAction = serverActionProcedure.use((opts) => {
+  if (!opts.ctx.user) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+    });
   }
 
-  return next({
+  return opts.next({
     ctx: {
-      session: {
-        ...ctx.session,
-      },
+      ...opts.ctx,
+      user: opts.ctx.user,
     },
   });
 });

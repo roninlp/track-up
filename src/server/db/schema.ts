@@ -1,7 +1,7 @@
 // Example model schema from the Drizzle docs
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
-import { sql } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("user", {
@@ -10,13 +10,23 @@ export const users = sqliteTable("user", {
   passwordHash: text("password_hash").notNull(),
 });
 
+export const userRelations = relations(users, ({ many }) => ({
+  sessions: many(sessions),
+  habits: many(habits),
+}));
+
 export const sessions = sqliteTable("session", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
+  userId: text("user_id").notNull(),
   expiresAt: int("expires_at").notNull(),
 });
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  users: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
 
 export const habits = sqliteTable("habit", {
   id: int("id").primaryKey({ autoIncrement: true }),
@@ -28,25 +38,35 @@ export const habits = sqliteTable("habit", {
   updatedAt: int("updated_at", { mode: "timestamp" }).$onUpdate(
     () => new Date(),
   ),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
+  userId: text("user_id").notNull(),
 });
+
+export const habitsRelations = relations(habits, ({ one, many }) => ({
+  user: one(users, {
+    fields: [habits.userId],
+    references: [users.id],
+  }),
+  habitRecords: many(habitRecords),
+}));
 
 export type HabitType = typeof habits.$inferSelect;
 export type InsertHabit = typeof habits.$inferInsert;
 
-// Habit records table
 export const habitRecords = sqliteTable("habit_records", {
   id: int("id").primaryKey({ autoIncrement: true }),
-  habitId: int("habit_id")
-    .notNull()
-    .references(() => habits.id),
+  habitId: int("habit_id").notNull(),
   date: int("date", { mode: "timestamp" }).notNull(),
-  completed: int("completed", { mode: "boolean" }).notNull(),
+  completed: int("completed", { mode: "boolean" }).notNull().default(false),
 });
 
-export type HabitRecord = typeof habitRecords.$inferSelect;
+export const habitRecordsRelations = relations(habitRecords, ({ one }) => ({
+  habits: one(habits, {
+    fields: [habitRecords.habitId],
+    references: [habits.id],
+  }),
+}));
+
+export type HabitRecordType = typeof habitRecords.$inferSelect;
 export type InsertHabitRecord = typeof habitRecords.$inferInsert;
 
 // [info] sample model schema
